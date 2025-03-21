@@ -59,6 +59,9 @@ class PyAudioPlayer:
         else:
             print("No audio to play or resume.")
 
+    def isPlaying(self):
+        return self.is_playing
+
     def pause(self):
         """Pause the currently playing audio."""
         if self.is_playing:
