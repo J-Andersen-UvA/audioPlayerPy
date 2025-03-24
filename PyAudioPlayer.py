@@ -1,6 +1,7 @@
 import pyaudio
 import wave
 import threading
+import numpy as np
 import time
 
 class PyAudioPlayer:
@@ -14,7 +15,7 @@ class PyAudioPlayer:
         self.audio_thread = None
         self.current_audio = None
 
-    def _play_audio(self):
+    def _play_audio(self, volume_scale=1.0):	
         """Internal method to handle audio playback."""
         chunk = 1024
         self.stream = self.p.open(format=self.p.get_format_from_width(self.wf.getsampwidth()),
@@ -28,7 +29,9 @@ class PyAudioPlayer:
             data = self.wf.readframes(chunk)
             if not data:
                 break
-            self.stream.write(data)
+            audio_array = np.frombuffer(data, dtype=np.int16)  # Convert to NumPy array
+            audio_array = (audio_array * volume_scale).astype(np.int16)  # Apply volume scaling
+            self.stream.write(audio_array.tobytes())
         self._cleanup()
 
     def _cleanup(self):
@@ -42,7 +45,7 @@ class PyAudioPlayer:
             self.wf = None
         self.is_playing = False
 
-    def play(self, path_to_audio=None):
+    def play(self, path_to_audio=None, volume_scale=1.0):
         """Play or resume audio. If a path is given, play from the beginning."""
         if path_to_audio:
             if self.is_playing:
@@ -52,7 +55,7 @@ class PyAudioPlayer:
             self.stop_playback = False
             self.is_paused = False
             self.is_playing = True
-            self.audio_thread = threading.Thread(target=self._play_audio, daemon=True)
+            self.audio_thread = threading.Thread(target=self._play_audio, args=(volume_scale,), daemon=True)
             self.audio_thread.start()
         elif self.is_playing and self.is_paused:
             self.is_paused = False  # Resume playback
